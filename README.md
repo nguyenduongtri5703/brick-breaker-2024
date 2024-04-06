@@ -7,3 +7,9 @@ Yêu cầu:
 - Viết bằng SCSS
 - Function phải có comment bằng tiếng Việt kèm giải thích
 - Tên file MSSV_hoten_SDT_lop
+
+Mô tả: dựa trên game Breakout 1976 Atari
+- Game sẽ có một thanh ngang(paddle) di chuyển trái phải
+- Có một quả banh(ball) ở trên paddle
+- Sẽ có những khối gạch(bricks) xuất hiện ở trên màn hình
+- Người chơi sẽ dùng paddle đỡ ball cho đến khi phá vỡ hết bricks sẽ chiến thắng
