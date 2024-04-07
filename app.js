@@ -1,21 +1,20 @@
 // Tham số của game
-const BALL_SPD = 0.5; // starting ball as a fraction of screen width per second
-const BALL_SPIN = 0.2; // ball deflection off the paddle (0 = no spin, 1 = high spin)
-const HEIGHT = 550; // pixels
-const PADDLE_SPD = 0.7; // fraction of screen width per second
-
-// Kích thước màn hình game
-const WIDTH = HEIGHT * 0.9;
-const WALL = WIDTH / 50;
-const BALL_SIZE = WALL;
-const PADDLE_H = WALL;
-const PADDLE_W = PADDLE_H * 5;
+const BALL_SPD = 0.5; // starting ball as a fraction of screen height per second
+const BALL_SPIN = 0; // ball deflection off the paddle (0 = no spin, 1 = high spin)
+const BRICK_COLS = 14 // số cột
+const BRICK_GAP = 0.3 // khoảng cách giữa các dòng
+const BRICK_ROWS = 8; // số dòng ban đầu
+const MARGIN = 6; // khoảng trống phía trên viên gạch
+const MAX_LEVEL = 10; // level tối đa (+2 hàng mỗi level)
+const PADDLE_W = 0.1; // paddle width as a fraction of screen width
+const PADDLE_SPD = 0.5; // fraction of screen width per second
+const WALL = 0.02; // wall/ball/paddle size as a fraction of the shortest screen dimension
 
 // Màu sắc
 const COLOR_BACKGROUND = "black";
 const COLOR_BALL = "violet";
 const COLOR_PADDLE = "white";
-const COLOR_WALL = "grey";
+const COLOR_wall = "grey";
 
 // Khai báo biến
 const Direction = {
@@ -26,19 +25,15 @@ const Direction = {
 
 // Set up cho thẻ canvas
 var canv = document.createElement('canvas');
-canv.width = WIDTH;
-canv.height = HEIGHT;
 document.body.appendChild(canv);
-
-// Set up the context
 var ctx = canv.getContext('2d');
-ctx.lineWidth = WALL;
 
 // Các biến trong game
-var ball, paddle;
+var ball, paddle, bricks = [], level;
 
-// Chạy game
-newGame();
+// Kích thước màn hình game
+var height, width, wall;
+setDimensions();
 
 // Eventlistener
 document.addEventListener("keydown", keyDown);
@@ -60,11 +55,13 @@ function loop(timeNow) {
     // Cập nhật
     updatePaddle(timeDelta);
     updateBall(timeDelta);
+    updateBricks(timeDelta);
 
-    // Vẽ nền
+    // Vẽ thành phần
     drawBackground();
     drawWalls();
     drawPaddle();
+    drawBricks();
     drawBall();
 
     // Gọi lại vòng lặp
@@ -73,6 +70,7 @@ function loop(timeNow) {
 
 function applyBallSpeed(angle) {
     // Giữ cho ball luôn trong khoảng 30-150 độ
+    // Trường hợp có độ xoáy
     if (angle < Math.PI / 6) {
         angle = Math.PI / 6;
     } else if (angle > Math.PI * 5 / 6) {
@@ -84,6 +82,39 @@ function applyBallSpeed(angle) {
     ball.yv = -ball.spd * Math.sin(angle);
 }
 
+function createBricks() {
+    // kích thước của dòng
+    let minY = wall;
+    let maxY = ball.y - ball.h * 3.5; // ball.y - ball.h * 0.5 - ball.h * 3;
+    let totalSpaceY = maxY - minY;
+    let totalRows = MARGIN + BRICK_ROWS + MAX_LEVEL * 2;
+    let rowH = totalSpaceY / totalRows;
+    let gap = wall * BRICK_GAP;
+    let h = rowH - gap;
+
+    // kích thước của cột
+    let totalSpaceX = width - wall * 2;
+    let colW = (totalSpaceX - gap) / BRICK_COLS;
+    let w = colW - gap;
+
+    // phân bố mảng bricks
+    bricks = [];
+    let cols = BRICK_COLS;
+    let rows = BRICK_ROWS + level * 2;
+    let color, left, top, rank, rankHigh;
+    rankHigh = rows * 0.5 - 1;
+    for ( let i = 0; i < rows; i++) {
+        bricks[i] = [];
+        rank = Math.floor(i * 0.5);
+        color = getBrickColor(rank, rankHigh);
+        top = wall + (MARGIN + i) * rowH;
+        for (let j =0; j < cols; j++) {
+            left  = wall + gap + j *colW;
+            bricks[i][j] = new Brick(left, top, w, h, color);
+        }
+    }
+}
+
 function drawBackground() {
     ctx.fillStyle = COLOR_BACKGROUND;
     ctx.fillRect(0, 0, canv.width, canv.height);
@@ -91,7 +122,22 @@ function drawBackground() {
 
 function drawBall() {
     ctx.fillStyle = COLOR_BALL;
-    ctx.fillRect(ball.x - ball.w * 0.5, ball.y - ball.h *0.5, ball.w, ball.h);
+    // ctx.fillRect(ball.x - ball.w * 0.5, ball.y - ball.h *0.5, ball.w, ball.h);
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.w / 2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawBricks() {
+    for (let row of bricks) {
+        for (let brick of row) {
+            if (brick == null) {
+                continue;
+            }
+            ctx.fillStyle = brick.color;
+            ctx.fillRect(brick.left, brick.top, brick.w, brick.h);
+        }
+    }
 }
 
 function drawPaddle() {
@@ -100,18 +146,39 @@ function drawPaddle() {
 }
 
 function drawWalls() {
-    let hwall = WALL * 0.5;
-    ctx.strokeStyle = COLOR_WALL;
+    let hwall = wall * 0.5;
+    ctx.strokeStyle = COLOR_wall;
     ctx.beginPath();
     // Trái dưới
-    ctx.moveTo(hwall, HEIGHT);
+    ctx.moveTo(hwall, height);
     // Trái trên
     ctx.lineTo(hwall, hwall);
     // Phải trên
-    ctx.lineTo(WIDTH - hwall, hwall);
+    ctx.lineTo(width - hwall, hwall);
     // Phải dưới
-    ctx.lineTo(WIDTH - hwall, HEIGHT);
+    ctx.lineTo(width - hwall, height);
     ctx.stroke()
+}
+
+// red = 0, orange = 1/3, yellow = 2/3, green = 1
+function getBrickColor(rank, highestRank) {
+    let fraction = rank / highestRank;
+    let r, g, b = 0;
+
+    // red to orange to yellow (increase green)
+    if (fraction <= 0.67) {
+        r = 255;
+        g = 255 * fraction / 0.67;
+    }
+
+    // yellow to green (reduce red)
+    else {
+        r = 255 * (1 - fraction) / 0.33;
+        g = 255;
+    }
+
+    // return rgb color string
+    return "rgb(" + r + ", " + g + ", " + b + ")";
 }
 
 function keyDown(ev) {
@@ -154,6 +221,8 @@ function keyUp(ev) {
 function newGame() {
     paddle = new Paddle();
     ball = new Ball();
+    level = 0;
+    createBricks();
 }
 
 function outOfBounds() {
@@ -172,35 +241,45 @@ function serve() {
     applyBallSpeed(angle);
 }
 
+function setDimensions() {
+    height = window.innerHeight; // pixels
+    width = window.innerWidth; // pixels
+    wall = WALL * (height < width ? height : width);
+    canv.width = width;
+    canv.height = height;
+    ctx.lineWidth = wall;
+    newGame();
+}
+
 function updateBall(delta) {
     ball.x += ball.xv * delta;
     ball.y += ball.yv * delta;
 
     // Ball chạm tường
-    if (ball.x < WALL + ball.w * 0.5) {
-        ball.x = WALL + ball.w * 0.5;
+    if (ball.x < wall + ball.w * 0.5) {
+        ball.x = wall + ball.w * 0.5;
         ball.xv = -ball.xv
-    } else if (ball.x > canv.width - WALL - ball.w * 0.5) {
-        ball.x = canv.width - WALL - ball.w * 0.5;
+    } else if (ball.x > canv.width - wall - ball.w * 0.5) {
+        ball.x = canv.width - wall - ball.w * 0.5;
         ball.xv = -ball.xv;
-    } else if (ball.y < WALL + ball.h * 0.5) {
-        ball.y = WALL + ball.h * 0.5;
+    } else if (ball.y < wall + ball.h * 0.5) {
+        ball.y = wall + ball.h * 0.5;
         ball.yv = -ball.yv;
-
-        // Modify the angle based of ball spin
-        let angle = Math.atan2(-ball.yv, ball.xv);
-        angle += (Math.random() * Math.PI / 2 - Math.PI /4) * BALL_SPIN;
-        applyBallSpeed(angle);
     }
 
     // Ball chạm thanh paddle
     if (ball.y > paddle.y - paddle.h * 0.5 - ball.h * 0.5
-        && ball.y < paddle.y
+        && ball.y < paddle.y + paddle.h * 0.5
         && ball.x > paddle.x - paddle.w *0.5 - ball.w * 0.5
         && ball.x < paddle.x + paddle.w *0.5 + ball.w * 0.5
     ) {
         ball.y = paddle.y - paddle.h * 0.5 - ball.h * 0.5;
         ball.yv = -ball.yv;
+
+         // Modify the angle based of ball spin
+         let angle = Math.atan2(-ball.yv, ball.xv);
+         angle += (Math.random() * Math.PI / 2 - Math.PI /4) * BALL_SPIN;
+         applyBallSpeed(angle);
     }
 
     // Ball ra ngoài canvas
@@ -214,33 +293,67 @@ function updateBall(delta) {
     }
 }
 
+function updateBricks(delta) {
+    // kiểm tra ball va chạm
+    OUTER: for (let i = 0; i < bricks.length; i++) {
+        for (let j = 0; j < BRICK_COLS; j++) {
+            if (bricks[i][j] != null && bricks[i][j].intersect(ball)) {
+                bricks[i][j] = null;
+                ball.yv = -ball.yv;
+                break OUTER;
+            }
+        }
+    }
+}
+
 function updatePaddle(delta) {
     paddle.x += paddle.xv * delta;
 
     // Dừng thanh paddle khi chạm tường
-    if (paddle.x < WALL + paddle.w * 0.5) {
-        paddle.x = WALL + paddle.w * 0.5;
-    } else if (paddle.x > canv.width - WALL - paddle.w * 0.5) {
-        paddle.x = canv.width - WALL - paddle.w * 0.5;
+    if (paddle.x < wall + paddle.w * 0.5) {
+        paddle.x = wall + paddle.w * 0.5;
+    } else if (paddle.x > canv.width - wall - paddle.w * 0.5) {
+        paddle.x = canv.width - wall - paddle.w * 0.5;
     }
 
 }
 
 function Ball() {
-    this.w = BALL_SIZE;
-    this.h = BALL_SIZE;
+    this.w = wall;
+    this.h = wall;
     this.x = paddle.x;
     this.y = paddle.y - paddle.h / 2 - this.h / 2;
-    this.spd = BALL_SPD * WIDTH;
+    this.spd = BALL_SPD * height;
     this.xv = 0;
     this.yv = 0;
 }
 
+function Brick(left, top, w, h, color) {
+    this.w = w;
+    this.h = h;
+    this.bot = top + h;
+    this.left = left;
+    this.right = left + w;
+    this.top = top;
+    this.color = color;
+    
+    this.intersect = function(ball) {
+        let bBot = ball.y + ball.h * 0.5;
+        let bLeft = ball.x - ball.w * 0.5;
+        let bRight = ball.x + ball.w * 0.5;
+        let bTop = ball.y - ball.h * 0.5;
+        return this.left < bRight
+        && bLeft < this.right
+        && this.bot > bTop
+        && bBot > this.top;
+    }
+}
+
 function Paddle() {
-    this.w = PADDLE_W;
-    this.h = PADDLE_H;
+    this.w = PADDLE_W * width;
+    this.h = wall;
     this.x = canv.width / 2;
     this.y = canv.height - this.h * 3;
-    this.spd = PADDLE_SPD * WIDTH;
+    this.spd = PADDLE_SPD * width;
     this.xv = 0;
 }
