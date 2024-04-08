@@ -1,5 +1,6 @@
 // Tham số của game
 const BALL_SPD = 0.5; // starting ball as a fraction of screen height per second
+const BALL_SPD_MAX = 2; // max ball speed as a multiple of starting speed
 const BALL_SPIN = 0.2; // ball deflection off the paddle (0 = no spin, 1 = high spin)
 const BRICK_COLS = 14 // số cột
 const BRICK_GAP = 0.3 // khoảng cách giữa các dòng
@@ -22,10 +23,12 @@ const COLOR_WALL = "grey";
 
 // Nội dung
 const TEXT_FONT = "Lucida Console";
+const TEXT_GAME_OVER = "GAME OVER";
 const TEXT_LEVELS = "Level";
 const TEXT_LIVES = "Ball";
 const TEXT_SCORE = "Score";
 const TEXT_HIGH_SCORE = "BEST";
+const TEXT_WIN = "!!! YOU WIN !!!";
 
 // Khai báo biến
 const Direction = {
@@ -41,8 +44,9 @@ var ctx = canv.getContext('2d');
 
 // Các biến trong game
 var ball, paddle, bricks = [];
+var gameOver, win;
 var level, lives, score, scoreHigh;
-var textSize;
+var numBricks, textSize;
 
 // Kích thước màn hình game
 var height, width, wall;
@@ -66,9 +70,11 @@ function loop(timeNow) {
     timeLast = timeNow;
 
     // Cập nhật
-    updatePaddle(timeDelta);
-    updateBall(timeDelta);
-    updateBricks(timeDelta);
+    if (!gameOver) {
+        updatePaddle(timeDelta);
+        updateBall(timeDelta);
+        updateBricks(timeDelta);
+    }
 
     // Vẽ thành phần
     drawBackground();
@@ -108,17 +114,19 @@ function createBricks() {
     bricks = [];
     let cols = BRICK_COLS;
     let rows = BRICK_ROWS + level * 2;
-    let color, left, top, rank, rankHigh, score;
+    let color, left, top, rank, rankHigh, score, spdMult;
+    numBricks = cols * rows;
     rankHigh = rows * 0.5 - 1;
     for ( let i = 0; i < rows; i++) {
         bricks[i] = [];
         rank = Math.floor(i * 0.5);
         score = (rankHigh - rank) * 2 + 1;
+        spdMult = 1 + (rankHigh - rank) / rankHigh * (BALL_SPD_MAX - 1);
         color = getBrickColor(rank, rankHigh);
         top = wall + (MARGIN + i) * rowH;
         for (let j =0; j < cols; j++) {
             left  = wall + gap + j *colW;
-            bricks[i][j] = new Brick(left, top, w, h, color, score);
+            bricks[i][j] = new Brick(left, top, w, h, color, score, spdMult);
         }
     }
 }
@@ -190,6 +198,14 @@ function drawText() {
     ctx.fillText(level, x3, yValue, maxWidth3);
     ctx.textAlign = "right";
     ctx.fillText(scoreHigh, x4, yValue, maxWidth4);
+
+    // game over
+    if (gameOver) {
+        let text = win ? TEXT_WIN : TEXT_GAME_OVER;
+        ctx.font = textSize + "px " + TEXT_FONT;
+        ctx.textAlign = "center";
+        ctx.fillText(text, width * 0.5, paddle.y - textSize, maxWidth);
+    }
 }
 
 function drawWalls() {
@@ -232,6 +248,9 @@ function keyDown(ev) {
     switch (ev.keyCode) {
         case 32: // phím khoảng trắng (phóng ball một góc ngẫu nhiên)
             serve();
+            if (gameOver) {
+                newGame();
+            }
             break;
         case 37: // mũi tên trái trên bàn phím (di chuyển paddle sang trái)
             movePaddle(Direction.LEFT);
@@ -271,9 +290,11 @@ function newBall() {
 }
 
 function newGame() {
+    gameOver = false;
     level = 0;
     lives = GAME_LIVES;
     score = 0;
+    win = false;
 
     // lấy điểm cao nhất từ bộ nhớ cục bộ
     // https://www.w3schools.com/htmL/html5_webstorage.asp
@@ -295,7 +316,12 @@ function newLevel() {
 
 function outOfBounds() {
     // Ball rơi xuống thì sẽ restart lại game
-    newGame();
+    lives--;
+    if (lives == 0) {
+        gameOver = true;
+    }
+    newBall();
+
 }
 
 function serve() {
@@ -304,8 +330,10 @@ function serve() {
         return;
     }
 
-    // Góc ngẫu nhiên nằm trong khoảng [45,135] độ
-    let angle = Math.random() * Math.PI / 2 + Math.PI / 4;
+    // Góc ngẫu nhiên nằm trong khoảng [30,150] độ
+    let minBounceAngel = MIN_BOUCE_ANGLE / 180 * Math.PI; // radians
+    let range = Math.PI - minBounceAngel * 2;
+    let angle = Math.random() * range + minBounceAngel;
     applyBallSpeed(angle);
 }
 
@@ -392,11 +420,32 @@ function updateBricks(delta) {
         for (let j = 0; j < BRICK_COLS; j++) {
             if (bricks[i][j] != null && bricks[i][j].intersect(ball)) {
                 updateScore(bricks[i][j].score);
-                bricks[i][j] = null;
+                ball.setSpeed(bricks[i][j].spdMult);
+
+                // set ball to the edge of the brick
+                if (ball.yv < 0) { // upwards
+                    ball.y = bricks[i][j].bot + ball.h * 0.5;
+                } else { // downwards
+                    ball.y = bricks[i][j].top - ball.h * 0.5;
+                }
+
                 ball.yv = -ball.yv;
+                bricks[i][j] = null;
                 spinBall();
+                numBricks--;
                 break OUTER;
             }
+        }
+    }
+
+    // level tiếp theo
+    if (numBricks == 0) {
+        if (level < MAX_LEVEL) {
+            level++;
+            newLevel();
+        } else {
+            gameOver = true;
+            win = true;
         }
     }
 }
@@ -430,9 +479,13 @@ function Ball() {
     this.spd = BALL_SPD * height;
     this.xv = 0;
     this.yv = 0;
+
+    this.setSpeed = function(spdMult) {
+        this.spd = Math.max(this.spd, BALL_SPD * height * spdMult);
+    }
 }
 
-function Brick(left, top, w, h, color, score) {
+function Brick(left, top, w, h, color, score, spdMult) {
     this.w = w;
     this.h = h;
     this.bot = top + h;
@@ -441,6 +494,7 @@ function Brick(left, top, w, h, color, score) {
     this.top = top;
     this.color = color;
     this.score = score;
+    this.spdMult = spdMult;
     
     this.intersect = function(ball) {
         let bBot = ball.y + ball.h * 0.5;
