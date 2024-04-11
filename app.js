@@ -11,12 +11,16 @@ const MARGIN = 6; // khoảng trống phía trên viên gạch
 const MAX_LEVEL = 10; // level tối đa (+2 hàng mỗi level)
 const MIN_BOUCE_ANGLE = 30; // góc nảy nhỏ nhất theo phương ngang (độ)
 const PADDLE_W = 0.1; // paddle width as a fraction of screen width
+const PADDLE_SIZE = 1.5; // paddle size as a multiple of wall thickness
 const PADDLE_SPD = 0.5; // fraction of screen width per second
-const WALL = 0.02; // wall/ball/paddle size as a fraction of the shortest screen dimension
+const PUP_BONUS = 50; // điểm thưởng khi nhặt buff hoặc nhặt lại buff
+const PUP_CHANCE = 0.1; // tỉ lệ xuất hiện buff khi phá gạch
+const PUP_SPD = 0.2; // tốc độ tăng 
+const WALL = 0.02; // wall/ball size as a fraction of the shortest screen dimension
 
 // Màu sắc
 const COLOR_BACKGROUND = "black";
-const COLOR_BALL = "violet";
+const COLOR_BALL = "white";
 const COLOR_PADDLE = "white";
 const COLOR_TEXT = "white";
 const COLOR_WALL = "grey";
@@ -37,14 +41,27 @@ const Direction = {
     STOP: 2
 }
 
+const PupType = {
+    EXTENSION: { color: "dodgerblue", symbol: "=" },
+    LIFE: { color: "hotpink", symbol: "+" },
+    STICKY: { color: "forestgreen", symbol: "~" },
+    SUPER: { color: "magenta", symbol: "s" }
+}
+
 // Set up cho thẻ canvas
 var canv = document.createElement('canvas');
 document.body.appendChild(canv);
 var ctx = canv.getContext('2d');
 
+// set up hiệu ứng âm thanh
+var fxBrick = new Audio("brick.m4a")
+var fxPaddle = new Audio("paddle.m4a")
+var fxPowerup = new Audio("powerup.m4a")
+var fxWall = new Audio("wall.m4a")
+
 // Các biến trong game
-var ball, paddle, bricks = [];
-var gameOver, win;
+var ball, paddle, bricks = [], pups = [];
+var gameOver, pupExtension, pupSticky, pupSuper, win;
 var level, lives, score, scoreHigh;
 var numBricks, textSize;
 
@@ -74,11 +91,13 @@ function loop(timeNow) {
         updatePaddle(timeDelta);
         updateBall(timeDelta);
         updateBricks(timeDelta);
+        updatePups(timeDelta);
     }
 
     // Vẽ thành phần
     drawBackground();
     drawWalls();
+    drawPups();
     drawPaddle();
     drawBricks();
     drawText();
@@ -137,7 +156,7 @@ function drawBackground() {
 }
 
 function drawBall() {
-    ctx.fillStyle = COLOR_BALL;
+    ctx.fillStyle = pupSuper ? PupType.SUPER.color : COLOR_BALL;
     // ctx.fillRect(ball.x - ball.w * 0.5, ball.y - ball.h *0.5, ball.w, ball.h);
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.w / 2, 0, Math.PI * 2);
@@ -157,8 +176,20 @@ function drawBricks() {
 }
 
 function drawPaddle() {
-    ctx.fillStyle = COLOR_PADDLE;
+    ctx.fillStyle = pupSticky ? PupType.STICKY.color : COLOR_PADDLE;
     ctx.fillRect(paddle.x - paddle.w * 0.5, paddle.y - paddle.h *0.5, paddle.w, paddle.h);
+}
+
+function drawPups() {
+    ctx.lineWidth = wall * 0.35;
+    for (let pup of pups) {
+        ctx.fillStyle = pup.type.color;
+        ctx.strokeStyle = pup.type.color;
+        ctx.strokeRect(pup.x - pup.w * 0.5, pup.y - pup.h *0.5, pup.w, pup.h);
+        ctx.font = "bold " + pup.h + "px " + TEXT_FONT;
+        ctx.textAlign = "center";
+        ctx.fillText(pup.type.symbol, pup.x, pup.y);
+    }
 }
 
 function drawText() {
@@ -210,6 +241,7 @@ function drawText() {
 
 function drawWalls() {
     let hwall = wall * 0.5;
+    ctx.lineWidth = wall;
     ctx.strokeStyle = COLOR_WALL;
     ctx.beginPath();
     // Trái dưới
@@ -285,6 +317,9 @@ function keyUp(ev) {
 }
 
 function newBall() {
+    pupExtension = false;
+    pupSticky = false;
+    pupSuper = false;
     paddle = new Paddle();
     ball = new Ball();
 }
@@ -310,6 +345,7 @@ function newGame() {
 }
 
 function newLevel() {
+    pups = [];
     newBall();
     createBricks();
 }
@@ -334,7 +370,9 @@ function serve() {
     let minBounceAngel = MIN_BOUCE_ANGLE / 180 * Math.PI; // radians
     let range = Math.PI - minBounceAngel * 2;
     let angle = Math.random() * range + minBounceAngel;
-    applyBallSpeed(angle);
+    applyBallSpeed(pupSticky ? Math.PI / 2 : angle);
+    fxPaddle.play();
+    return true;
 }
 
 function setDimensions() {
@@ -343,7 +381,6 @@ function setDimensions() {
     wall = WALL * (height < width ? height : width);
     canv.width = width;
     canv.height = height;
-    ctx.lineWidth = wall;
     ctx.textBaseline = "middle";
     newGame();
 }
@@ -381,14 +418,17 @@ function updateBall(delta) {
     if (ball.x < wall + ball.w * 0.5) {
         ball.x = wall + ball.w * 0.5;
         ball.xv = -ball.xv;
+        fxWall.play();
         spinBall();
     } else if (ball.x > canv.width - wall - ball.w * 0.5) {
         ball.x = canv.width - wall - ball.w * 0.5;
         ball.xv = -ball.xv;
+        fxWall.play();
         spinBall();
     } else if (ball.y < wall + ball.h * 0.5) {
         ball.y = wall + ball.h * 0.5;
         ball.yv = -ball.yv;
+        fxWall.play();
         spinBall();
     }
 
@@ -399,18 +439,19 @@ function updateBall(delta) {
         && ball.x < paddle.x + paddle.w *0.5 + ball.w * 0.5
     ) {
         ball.y = paddle.y - paddle.h * 0.5 - ball.h * 0.5;
-        ball.yv = -ball.yv;
-        spinBall();
+        if (pupSticky) {
+            ball.xv = 0;
+            ball.yv = 0;
+        } else {
+            ball.yv = -ball.yv;
+            spinBall();
+        }
+        fxPaddle.play();
     }
 
     // Ball ra ngoài canvas
     if (ball.y > canv.height) {
         outOfBounds();
-    }
-
-    // Di chuyển ball bằng paddle
-    if (ball.yv == 0) {
-        ball.x = paddle.x;
     }
 }
 
@@ -429,10 +470,24 @@ function updateBricks(delta) {
                     ball.y = bricks[i][j].top - ball.h * 0.5;
                 }
 
-                ball.yv = -ball.yv;
+                // Tạo buff
+                if (Math.random() < PUP_CHANCE) {
+                    let px = bricks[i][j].left + bricks[i][j].w / 2;
+                    let py = bricks[i][j].top + bricks[i][j].h / 2;
+                    let pSize = bricks[i][j].w / 2;
+                    let pKeys = Object.keys(PupType);
+                    let pKey = pKeys[Math.floor(Math.random() * pKeys.length)];
+                    pups.push(new PowerUp(px, py, pSize, PupType[pKey]))
+                }
+
+                // Chạm viên gạch và phá hủy nếu không phải là super ball
+                if (!pupSuper) {
+                    ball.yv = -ball.yv;
+                }
                 bricks[i][j] = null;
-                spinBall();
                 numBricks--;
+                fxBrick.play();
+                spinBall();
                 break OUTER;
             }
         }
@@ -451,6 +506,8 @@ function updateBricks(delta) {
 }
 
 function updatePaddle(delta) {
+    // Di chuyển thanh paddle
+    let lastPaddleX = paddle.x; // điểm cuối trước khi di chuyển
     paddle.x += paddle.xv * delta;
 
     // Dừng thanh paddle khi chạm tường
@@ -458,6 +515,66 @@ function updatePaddle(delta) {
         paddle.x = wall + paddle.w * 0.5;
     } else if (paddle.x > canv.width - wall - paddle.w * 0.5) {
         paddle.x = canv.width - wall - paddle.w * 0.5;
+    }
+
+    // Di chuyển ball bằng paddle
+    if (ball.yv == 0) {
+        ball.x += paddle.x - lastPaddleX;
+    }
+
+    // Thu thập buff
+    for  (let i = pups.length - 1; i >= 0; i--) {
+        if (
+            pups[i].x + pups[i].w * 0.5 > paddle.x - paddle.w * 0.5
+            && pups[i].x + pups[i].w * 0.5 < paddle.x + paddle.w * 0.5
+            && pups[i].y + pups[i].h * 0.5 > paddle.y - paddle.h * 0.5
+            && pups[i].y + pups[i].h * 0.5 < paddle.y + paddle.h * 0.5
+        ) {
+            switch(pups[i].type) {
+                case PupType.EXTENSION:
+                    // Gấp đôi chiều rộng của paddle
+                    if (pupExtension) {
+                        score += PUP_BONUS;
+                    } else {
+                        pupExtension = true;
+                        paddle.w *= 2;
+                    }
+                    break;
+                case PupType.LIFE:
+                    // Thêm mạng;
+                    lives++;
+                    break;
+                case PupType.STICKY:
+                    // Sẽ được 1 lần bắt dính trái banh lại
+                    if (pupSticky) {
+                        score += PUP_BONUS;
+                    } else {
+                        pupSticky = true;
+                    }
+                    break;
+                case PupType.SUPER:
+                    // Bánh siêu cấp xuyên phá tất cả
+                    if (pupSuper) {
+                        score += PUP_BONUS;
+                    } else {
+                        pupSuper = true;
+                    }
+                    break;
+            }
+            pups.splice(i, 1);
+            fxPowerup.play();
+        }
+    }
+}
+
+function updatePups(delta) {
+    for  (let i = pups.length - 1; i >= 0; i--) {
+        pups[i].y += pups[i].yv * delta;
+
+        // Xóa khỏi màn hình
+        if (pups[i].y - pups[i].h * 0.5 > height) {
+            pups.splice(i, 1);
+        }
     }
 }
 
@@ -510,9 +627,18 @@ function Brick(left, top, w, h, color, score, spdMult) {
 
 function Paddle() {
     this.w = PADDLE_W * width;
-    this.h = wall;
+    this.h = wall * PADDLE_SIZE;
     this.x = canv.width / 2;
-    this.y = canv.height - this.h * 3;
+    this.y = canv.height - wall * 3.5 + this.h /2;
     this.spd = PADDLE_SPD * width;
     this.xv = 0;
+}
+
+function PowerUp(x, y, size, type) {
+    this.w = size;
+    this.h = size;
+    this.x = x;
+    this.y = y;
+    this.type = type;
+    this.yv = PUP_SPD * height;
 }
