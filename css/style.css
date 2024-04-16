@@ -1,8 +1,101 @@
 body {
   margin: 0;
   overflow: hidden;
+  background-color: #d0e8f2;
 }
 
 canvas {
   display: block;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#levels {
+  position: fixed;
+  left: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  height: 100vh;
+}
+
+#level-0,
+#level-1,
+#level-2,
+#level-3,
+#level-4,
+#level-5 {
+  padding: 8px 32px;
+  cursor: pointer;
+  color: #fff;
+  border-radius: 8px;
+}
+
+#level-0 {
+  background-color: #336699;
+}
+
+#level-0:hover {
+  background-color: #428bca;
+}
+
+#level-1 {
+  background-color: #1E90FF;
+}
+
+#level-1:hover {
+  background-color: #1E90FF;
+}
+
+#level-2 {
+  background-color: #4A90E2;
+}
+
+#level-2:hover {
+  background-color: #357ebd;
+}
+
+#level-3 {
+  background-color: #6FA1FF;
+}
+
+#level-3:hover {
+  background-color: #1C86EE;
+}
+
+#level-4 {
+  background-color: #1976D2;
+}
+
+#level-4:hover {
+  background-color: #0F5BBB;
+}
+
+#level-5 {
+  background-color: #3F51B5;
+}
+
+#level-5:hover {
+  background-color: #2F3E9A;
+}
+
+.button-rules {
+  position: fixed;
+  top: 10%;
+  right: 8%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  text-align: center;
+  background-color: #3F51B5;
+  color: yellow;
+  cursor: pointer;
+}
+
+.rules {
+  display: none;
 }

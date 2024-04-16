@@ -8,14 +8,14 @@ const BRICK_ROWS = 8; // số dòng ban đầu
 const GAME_LIVES = 3; // số mạng ban đầu
 const KEY_SCORE = "highscore"; // save key for local storage of high score
 const MARGIN = 6; // khoảng trống phía trên viên gạch
-const MAX_LEVEL = 10; // level tối đa (+2 hàng mỗi level)
+const MAX_LEVEL = 5; // level tối đa (+2 hàng mỗi level)
 const MIN_BOUCE_ANGLE = 30; // góc nảy nhỏ nhất theo phương ngang (độ)
-const PADDLE_W = 0.1; // paddle width as a fraction of screen width
+const PADDLE_W = 0.15; // paddle width as a fraction of screen width
 const PADDLE_SIZE = 1.5; // paddle size as a multiple of wall thickness
 const PADDLE_SPD = 0.5; // fraction of screen width per second
 const PUP_BONUS = 50; // điểm thưởng khi nhặt buff hoặc nhặt lại buff
 const PUP_CHANCE = 0.1; // tỉ lệ xuất hiện buff khi phá gạch
-const PUP_SPD = 0.2; // tốc độ tăng 
+const PUP_SPD = 0.2; // tốc độ tăng
 const WALL = 0.02; // wall/ball size as a fraction of the shortest screen dimension
 
 // Màu sắc
@@ -33,6 +33,7 @@ const TEXT_LIVES = "Ball";
 const TEXT_SCORE = "Score";
 const TEXT_HIGH_SCORE = "BEST";
 const TEXT_WIN = "!!! YOU WIN !!!";
+
 
 // Khai báo biến
 const Direction = {
@@ -54,10 +55,10 @@ document.body.appendChild(canv);
 var ctx = canv.getContext('2d');
 
 // set up hiệu ứng âm thanh
-var fxBrick = new Audio("brick.m4a")
-var fxPaddle = new Audio("paddle.m4a")
-var fxPowerup = new Audio("powerup.m4a")
-var fxWall = new Audio("wall.m4a")
+var fxBrick = new Audio("brick.m4a");
+var fxPaddle = new Audio("paddle.m4a");
+var fxPowerup = new Audio("powerup.m4a");
+var fxWall = new Audio("wall.m4a");
 
 // Các biến trong game
 var ball, paddle, bricks = [], pups = [];
@@ -331,6 +332,7 @@ function newGame() {
     score = 0;
     win = false;
 
+
     // lấy điểm cao nhất từ bộ nhớ cục bộ
     // https://www.w3schools.com/htmL/html5_webstorage.asp
     let scoreStr = localStorage.getItem(KEY_SCORE);
@@ -377,7 +379,7 @@ function serve() {
 
 function setDimensions() {
     height = window.innerHeight; // pixels
-    width = window.innerWidth; // pixels
+    width = height * 1.4; // pixels
     wall = WALL * (height < width ? height : width);
     canv.width = width;
     canv.height = height;
