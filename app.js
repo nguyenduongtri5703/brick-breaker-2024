@@ -10,7 +10,7 @@ const KEY_SCORE = "highscore"; // save key for local storage of high score
 const MARGIN = 6; // khoảng trống phía trên viên gạch
 const MAX_LEVEL = 5; // level tối đa (+2 hàng mỗi level)
 const MIN_BOUCE_ANGLE = 30; // góc nảy nhỏ nhất theo phương ngang (độ)
-const PADDLE_W = 0.15; // paddle width as a fraction of screen width
+const PADDLE_W = 0.1; // paddle width as a fraction of screen width
 const PADDLE_SIZE = 1.5; // paddle size as a multiple of wall thickness
 const PADDLE_SPD = 0.5; // fraction of screen width per second
 const PUP_BONUS = 50; // điểm thưởng khi nhặt buff hoặc nhặt lại buff
@@ -33,6 +33,8 @@ const TEXT_LIVES = "Ball";
 const TEXT_SCORE = "Score";
 const TEXT_HIGH_SCORE = "BEST";
 const TEXT_WIN = "!!! YOU WIN !!!";
+const TEXT_WELCOME = "WELCOME TO MY GAME";
+const TEXT_SELECT_LEVEL = "<-- SELECT LEVEL";
 
 
 // Khai báo biến
@@ -47,6 +49,15 @@ const PupType = {
     LIFE: { color: "hotpink", symbol: "+" },
     STICKY: { color: "forestgreen", symbol: "~" },
     SUPER: { color: "magenta", symbol: "s" }
+}
+
+const levelPups = {
+    0: [],
+    1: [PupType.EXTENSION],
+    2: [PupType.SUPER, PupType.LIFE],
+    3: [PupType.EXTENSION, PupType.STICKY],
+    4: [PupType.EXTENSION, PupType.LIFE, PupType.SUPER],
+    5: [PupType.EXTENSION, PupType.SUPER, PupType.LIFE, PupType.STICKY]
 }
 
 // Set up cho thẻ canvas
@@ -101,7 +112,11 @@ function loop(timeNow) {
     drawPups();
     drawPaddle();
     drawBricks();
-    drawText();
+    if (!(level == null)){
+        drawText();
+    } else {
+        drawWelcomeText();
+    }
     drawBall();
 
     // Gọi lại vòng lặp
@@ -240,6 +255,19 @@ function drawText() {
     }
 }
 
+function drawWelcomeText() {
+    let margin = wall * 2;
+    let labelSize = textSize * 0.5;
+    ctx.fillStyle = COLOR_TEXT;
+    ctx.font = labelSize + "px " + TEXT_FONT;
+    let xWelcome = width * 0.35;
+    let xSelect = width * 0.35;
+    let yWelcome = height * 0.4;
+    let ySelect = height * 0.6;
+    ctx.fillText(TEXT_WELCOME, xWelcome, yWelcome, width - margin * 2);
+    ctx.fillText(TEXT_SELECT_LEVEL, xSelect, ySelect, width - margin * 2);
+}
+
 function drawWalls() {
     let hwall = wall * 0.5;
     ctx.lineWidth = wall;
@@ -284,6 +312,7 @@ function keyDown(ev) {
             if (gameOver) {
                 newGame();
             }
+            pupSticky = false;
             break;
         case 37: // mũi tên trái trên bàn phím (di chuyển paddle sang trái)
             movePaddle(Direction.LEFT);
@@ -317,6 +346,15 @@ function keyUp(ev) {
     }
 }
 
+function selectedLevel(selectedLevel) {
+    // Cập nhật level
+    level = selectedLevel;
+
+    // Tạo level mới
+    newGame();
+
+}
+
 function newBall() {
     pupExtension = false;
     pupSticky = false;
@@ -327,8 +365,8 @@ function newBall() {
 
 function newGame() {
     gameOver = false;
-    level = 0;
     lives = GAME_LIVES;
+    // level = 0;
     score = 0;
     win = false;
 
@@ -374,7 +412,6 @@ function serve() {
     let angle = Math.random() * range + minBounceAngel;
     applyBallSpeed(pupSticky ? Math.PI / 2 : angle);
     fxPaddle.play();
-    return true;
 }
 
 function setDimensions() {
@@ -444,7 +481,11 @@ function updateBall(delta) {
         if (pupSticky) {
             ball.xv = 0;
             ball.yv = 0;
-        } else {
+        }
+        else if (pupSuper){
+            pupSuper = false;
+        } 
+        else {
             ball.yv = -ball.yv;
             spinBall();
         }
@@ -474,12 +515,18 @@ function updateBricks(delta) {
 
                 // Tạo buff
                 if (Math.random() < PUP_CHANCE) {
-                    let px = bricks[i][j].left + bricks[i][j].w / 2;
-                    let py = bricks[i][j].top + bricks[i][j].h / 2;
-                    let pSize = bricks[i][j].w / 2;
-                    let pKeys = Object.keys(PupType);
-                    let pKey = pKeys[Math.floor(Math.random() * pKeys.length)];
-                    pups.push(new PowerUp(px, py, pSize, PupType[pKey]))
+                    let currentPups = levelPups[level];
+                    if (currentPups.length != 0) {
+                        let pupType = currentPups[Math.floor(Math.random() * currentPups.length)];
+                        let px = bricks[i][j].left + bricks[i][j].w / 2;
+                        let py = bricks[i][j].top + bricks[i][j].h / 2;
+                        let pSize = bricks[i][j].w / 2;
+                        // let pKeys = Object.keys(PupType);
+                        // let pKey = pKeys[Math.floor(Math.random() * pKeys.length)];
+                        pups.push(new PowerUp(px, py, pSize, pupType));
+                    } else {
+                        return;
+                    }
                 }
 
                 // Chạm viên gạch và phá hủy nếu không phải là super ball
@@ -497,13 +544,15 @@ function updateBricks(delta) {
 
     // level tiếp theo
     if (numBricks == 0) {
-        if (level < MAX_LEVEL) {
-            level++;
-            newLevel();
-        } else {
-            gameOver = true;
-            win = true;
-        }
+        // if (level < MAX_LEVEL) {
+        //     level++;
+        //     newLevel();
+        // } else {
+        //     gameOver = true;
+        //     win = true;
+        // }
+        gameOver = true;
+        win = true;
     }
 }
 

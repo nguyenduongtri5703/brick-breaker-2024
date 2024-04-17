@@ -8,12 +8,12 @@
 </head>
 <body>
     <div id="levels">
-        <button id="level-0">Level 0</button>
-        <button id="level-1">Level 1</button>
-        <button id="level-2">Level 2</button>
-        <button id="level-3">Level 3</button>
-        <button id="level-4">Level 4</button>
-        <button id="level-5">Level 5</button>
+        <button onclick="selectedLevel(0)" id="level-0">Level 0</button>
+        <button onclick="selectedLevel(1)" id="level-1">Level 1</button>
+        <button onclick="selectedLevel(2)" id="level-2">Level 2</button>
+        <button onclick="selectedLevel(3)" id="level-3">Level 3</button>
+        <button onclick="selectedLevel(4)" id="level-4">Level 4</button>
+        <button onclick="selectedLevel(5)" id="level-5">Level 5</button>
     </div>
     <div class="button-rules">
         ?
@@ -21,15 +21,28 @@
     <div class="rules">
         <p>Trong trò chơi này, người chơi điều khiển một thanh paddle để đẩy một quả bóng để phá hủy các viên gạch ở phía trên màn hình. Mỗi viên gạch được phá hủy sẽ mang lại điểm số.</p>
         <p>Quả bóng sẽ phản xạ từ các bề mặt của màn hình và thanh paddle. Nhiệm vụ của người chơi là không để quả bóng rơi xuống dưới màn hình, nếu không họ sẽ mất mạng.</p>
-        <p>Trò chơi có nhiều cấp độ khác nhau, mỗi cấp độ có thêm các viên gạch và độ khó tăng lên. Người chơi cần hoàn thành mỗi cấp độ để tiến tới cấp độ tiếp theo.</p>
-        <p>Ngoài ra, có các buff xuất hiện ngẫu nhiên khi phá hủy các viên gạch, giúp thanh paddle mở rộng, tăng mạng, hoặc biến quả bóng thành siêu bóng.</p>
+        <p>Trò chơi có nhiều cấp độ khác nhau, mỗi cấp độ có thêm các viên gạch và độ khó tăng lên.</p>
+        <p>Ngoài ra, có các buff xuất hiện ngẫu nhiên khi phá hủy các viên gạch, giúp thanh paddle mở rộng, thanh paddle có thể bắt quả bóng, tăng mạng, hoặc biến quả bóng thành siêu bóng.</p>
+        <p>
+            Quy định buff ở các level:<br>
+            Level 0: không có buff <br>
+            Level 1: = <br>
+            Level 2: +, s <br>
+            Level 3: =, ~ <br>
+            Level 4: =, +, s <br>
+            Level 5: có tất cả các loại buff <br>
+        </p>
         <p>Giải thích:
             <br> "+": tăng mạng
             <br> "=": mở rộng thanh paddle
             <br> "~": thanh paddle có thể bắt dính trái banh
             <br> "s": siêu bóng
         </p>
-        <p>Trò chơi kết thúc khi người chơi hết mạng hoặc hoàn thành tất cả các cấp độ. Điểm số cao nhất được lưu lại để so sánh.</p>
+        <p>Lưu ý:
+            <br> "~": có hiệu lực 1 lần
+            <br> "s": khi chạm thanh paddle sẽ quay về bóng thường
+        </p>
+        <p>Trò chơi kết thúc khi người chơi hết mạng hoặc phá húy tất cả viên gạch. Điểm số cao nhất được lưu lại để so sánh.</p>
     </div>
 </body>
 <script src="app.js"></script>
