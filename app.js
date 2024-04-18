@@ -1,22 +1,22 @@
 // Tham số của game
-const BALL_SPD = 0.5; // starting ball as a fraction of screen height per second
-const BALL_SPD_MAX = 2; // max ball speed as a multiple of starting speed
-const BALL_SPIN = 0.2; // ball deflection off the paddle (0 = no spin, 1 = high spin)
+const BALL_SPD = 0.5; // tốc độ ban đầu của quả bóng dựa theo kích thước màn hình mỗi giay
+const BALL_SPD_MAX = 2; // tóc độ tối đa mà quả bóng có thể đạt được
+const BALL_SPIN = 0.2; // bóng lệch hướng (0 = không có, 1 = chắc chắn lệch)
 const BRICK_COLS = 14 // số cột
 const BRICK_GAP = 0.3 // khoảng cách giữa các dòng
 const BRICK_ROWS = 8; // số dòng ban đầu
 const GAME_LIVES = 3; // số mạng ban đầu
-const KEY_SCORE = "highscore"; // save key for local storage of high score
+const KEY_SCORE = "highscore"; // lưu trữ điểm số cao nhất vào biến cục bộ
 const MARGIN = 6; // khoảng trống phía trên viên gạch
 const MAX_LEVEL = 5; // level tối đa (+2 hàng mỗi level)
 const MIN_BOUCE_ANGLE = 30; // góc nảy nhỏ nhất theo phương ngang (độ)
-const PADDLE_W = 0.1; // paddle width as a fraction of screen width
-const PADDLE_SIZE = 1.5; // paddle size as a multiple of wall thickness
-const PADDLE_SPD = 0.5; // fraction of screen width per second
+const PADDLE_W = 0.1; // chiều rộng của paddle dựa theo kích thước màn hình
+const PADDLE_SIZE = 1.5; // kích thước paddle là bội số của wall
+const PADDLE_SPD = 0.5; // tốc độ thanh paddle dựa theo kích thước màn hình
 const PUP_BONUS = 50; // điểm thưởng khi nhặt buff hoặc nhặt lại buff
 const PUP_CHANCE = 0.1; // tỉ lệ xuất hiện buff khi phá gạch
-const PUP_SPD = 0.2; // tốc độ tăng
-const WALL = 0.02; // wall/ball size as a fraction of the shortest screen dimension
+const PUP_SPD = 0.2; // tốc độ rơi của buff
+const WALL = 0.02; // kích thước tường/quả bóng dựa theo kích thước màn hình
 
 // Màu sắc
 const COLOR_BACKGROUND = "black";
@@ -44,6 +44,7 @@ const Direction = {
     STOP: 2
 }
 
+// Các loại buff
 const PupType = {
     EXTENSION: { color: "dodgerblue", symbol: "=" },
     LIFE: { color: "hotpink", symbol: "+" },
@@ -51,6 +52,7 @@ const PupType = {
     SUPER: { color: "magenta", symbol: "s" }
 }
 
+// Set up buff cho các level
 const levelPups = {
     0: [],
     1: [PupType.EXTENSION],
@@ -109,15 +111,15 @@ function loop(timeNow) {
     // Vẽ thành phần
     drawBackground();
     drawWalls();
-    drawPups();
-    drawPaddle();
-    drawBricks();
     if (!(level == null)){
         drawText();
+        drawPups();
+        drawPaddle();
+        drawBricks();
+        drawBall();
     } else {
         drawWelcomeText();
     }
-    drawBall();
 
     // Gọi lại vòng lặp
     requestAnimationFrame(loop);
@@ -129,6 +131,7 @@ function applyBallSpeed(angle) {
     ball.yv = -ball.spd * Math.sin(angle);
 }
 
+// Tạo ra các hàng gạch dựa trên level
 function createBricks() {
     // kích thước của dòng
     let minY = wall;
@@ -151,6 +154,8 @@ function createBricks() {
     let rows = BRICK_ROWS + level * 2;
     let color, left, top, rank, rankHigh, score, spdMult;
     numBricks = cols * rows;
+    // rankHigh xác định vị trí của hàng gạch, 2 hàng đầu là 0, 2 hàng tiếp theo là 1,...
+    // rankHigh dùng để biết ở vị trí đó gạch có màu gì, điểm số, tốc độ
     rankHigh = rows * 0.5 - 1;
     for ( let i = 0; i < rows; i++) {
         bricks[i] = [];
@@ -260,8 +265,8 @@ function drawWelcomeText() {
     let labelSize = textSize * 0.5;
     ctx.fillStyle = COLOR_TEXT;
     ctx.font = labelSize + "px " + TEXT_FONT;
-    let xWelcome = width * 0.35;
-    let xSelect = width * 0.35;
+    let xWelcome = width * 0.3;
+    let xSelect = width * 0.3;
     let yWelcome = height * 0.4;
     let ySelect = height * 0.6;
     ctx.fillText(TEXT_WELCOME, xWelcome, yWelcome, width - margin * 2);
@@ -284,6 +289,7 @@ function drawWalls() {
     ctx.stroke()
 }
 
+// Tạo màu cho các hàng gạch
 // red = 0, orange = 1/3, yellow = 2/3, green = 1
 function getBrickColor(rank, highestRank) {
     let fraction = rank / highestRank;
@@ -305,6 +311,7 @@ function getBrickColor(rank, highestRank) {
     return "rgb(" + r + ", " + g + ", " + b + ")";
 }
 
+// Sự kiện khi nhấn phím xuống
 function keyDown(ev) {
     switch (ev.keyCode) {
         case 32: // phím khoảng trắng (phóng ball một góc ngẫu nhiên)
@@ -323,6 +330,7 @@ function keyDown(ev) {
     }
 }
 
+// Di chuyển paddle
 function movePaddle(direction) {
     switch(direction) {
         case Direction.LEFT:
@@ -337,6 +345,7 @@ function movePaddle(direction) {
     }
 }
 
+// Sự kiện khi thả phím
 function keyUp(ev) {
     switch (ev.keyCode) {
         case 37: // mũi tên trái trên bàn phím (ngừng di chuyển)
@@ -346,6 +355,7 @@ function keyUp(ev) {
     }
 }
 
+// chọn level, gán level thành level đang được chọn
 function selectedLevel(selectedLevel) {
     // Cập nhật level
     level = selectedLevel;
@@ -355,6 +365,7 @@ function selectedLevel(selectedLevel) {
 
 }
 
+// Tạo ra quả bóng
 function newBall() {
     pupExtension = false;
     pupSticky = false;
@@ -363,6 +374,7 @@ function newBall() {
     ball = new Ball();
 }
 
+// Tạo màn hình trò chơi
 function newGame() {
     gameOver = false;
     lives = GAME_LIVES;
@@ -384,12 +396,14 @@ function newGame() {
     newLevel();
 }
 
+// Tạo level
 function newLevel() {
     pups = [];
     newBall();
     createBricks();
 }
 
+// Bóng rơi ra ngoài
 function outOfBounds() {
     // Ball rơi xuống thì sẽ restart lại game
     lives--;
@@ -400,6 +414,7 @@ function outOfBounds() {
 
 }
 
+// Phóng quả bóng
 function serve() {
     // Ball đã được phóng khỏi paddle
     if (ball.yv != 0) {
@@ -414,6 +429,7 @@ function serve() {
     fxPaddle.play();
 }
 
+// Kích thước màn hình
 function setDimensions() {
     height = window.innerHeight; // pixels
     width = height * 1.4; // pixels
@@ -424,6 +440,7 @@ function setDimensions() {
     newGame();
 }
 
+// Tạo độ xoáy cho quả bóng
 function spinBall() {
     let upwards = ball.yv < 0;
     let angle = Math.atan2(-ball.yv, ball.xv);
@@ -449,6 +466,7 @@ function spinBall() {
     applyBallSpeed(angle);
 }
 
+// Cập nhật quả bóng khi va chạm với các vật thể
 function updateBall(delta) {
     ball.x += ball.xv * delta;
     ball.y += ball.yv * delta;
@@ -498,6 +516,7 @@ function updateBall(delta) {
     }
 }
 
+// Cập nhật các hàng gạch
 function updateBricks(delta) {
     // kiểm tra ball va chạm
     OUTER: for (let i = 0; i < bricks.length; i++) {
@@ -506,10 +525,10 @@ function updateBricks(delta) {
                 updateScore(bricks[i][j].score);
                 ball.setSpeed(bricks[i][j].spdMult);
 
-                // set ball to the edge of the brick
-                if (ball.yv < 0) { // upwards
+                // giữ quả bóng không bị đi xuyên qua viên gạch
+                if (ball.yv < 0) { // đi lên
                     ball.y = bricks[i][j].bot + ball.h * 0.5;
-                } else { // downwards
+                } else { // di xuống
                     ball.y = bricks[i][j].top - ball.h * 0.5;
                 }
 
@@ -556,6 +575,7 @@ function updateBricks(delta) {
     }
 }
 
+// Cập nhật thanh paddle
 function updatePaddle(delta) {
     // Di chuyển thanh paddle
     let lastPaddleX = paddle.x; // điểm cuối trước khi di chuyển
@@ -618,6 +638,7 @@ function updatePaddle(delta) {
     }
 }
 
+// Cập nhật các buff khi xuất hiện, được thu thập
 function updatePups(delta) {
     for  (let i = pups.length - 1; i >= 0; i--) {
         pups[i].y += pups[i].yv * delta;
@@ -629,6 +650,7 @@ function updatePups(delta) {
     }
 }
 
+// Cập nhật điểm số
 function updateScore(brickScore) {
     score += brickScore;
 
@@ -648,6 +670,7 @@ function Ball() {
     this.xv = 0;
     this.yv = 0;
 
+    // set tốc độ quả bóng
     this.setSpeed = function(spdMult) {
         this.spd = Math.max(this.spd, BALL_SPD * height * spdMult);
     }
@@ -664,6 +687,7 @@ function Brick(left, top, w, h, color, score, spdMult) {
     this.score = score;
     this.spdMult = spdMult;
     
+    // kiểm tra có va chạm với viên gách hay không
     this.intersect = function(ball) {
         let bBot = ball.y + ball.h * 0.5;
         let bLeft = ball.x - ball.w * 0.5;
@@ -692,4 +716,13 @@ function PowerUp(x, y, size, type) {
     this.y = y;
     this.type = type;
     this.yv = PUP_SPD * height;
+}
+
+let infor = document.querySelector('.infor');
+function showInfor() {
+    infor.style.display = "block";
+}
+
+function hideInfor() {
+    infor.style.display = "none";
 }

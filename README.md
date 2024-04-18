@@ -3,6 +3,7 @@ Bài giữa kỳ môn Lập trình Front End Học kỳ II 2023-2024
 Yêu cầu:
 - Game có 6 levels
 - Có thể chọn level để chơi
+- Có popup thông tin cá nhân
 - Chạy tốt level 1 (5đ)
 - Có hướng dẫn sử dụng, video demo
 - Viết bằng SCSS

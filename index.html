@@ -25,24 +25,44 @@
         <p>Ngoài ra, có các buff xuất hiện ngẫu nhiên khi phá hủy các viên gạch, giúp thanh paddle mở rộng, thanh paddle có thể bắt quả bóng, tăng mạng, hoặc biến quả bóng thành siêu bóng.</p>
         <p>
             Quy định buff ở các level:<br>
-            Level 0: không có buff <br>
-            Level 1: = <br>
-            Level 2: +, s <br>
-            Level 3: =, ~ <br>
-            Level 4: =, +, s <br>
-            Level 5: có tất cả các loại buff <br>
+            Level 0: không có buff. <br>
+            Level 1: =. <br>
+            Level 2: +, s. <br>
+            Level 3: =, ~.<br>
+            Level 4: =, +, s. <br>
+            Level 5: có tất cả các loại buff. <br>
         </p>
         <p>Giải thích:
-            <br> "+": tăng mạng
-            <br> "=": mở rộng thanh paddle
-            <br> "~": thanh paddle có thể bắt dính trái banh
-            <br> "s": siêu bóng
+            <br> "+": tăng mạng.
+            <br> "=": mở rộng thanh paddle.
+            <br> "~": thanh paddle có thể bắt dính quả bóng.
+            <br> "s": siêu bóng.
         </p>
         <p>Lưu ý:
-            <br> "~": có hiệu lực 1 lần
-            <br> "s": khi chạm thanh paddle sẽ quay về bóng thường
+            <br> "~": có hiệu lực 1 lần.
+            <br> "s": khi chạm thanh paddle sẽ quay về bóng thường.
+            <br> Cẩn thận: khi bóng chạm tường, thanh paddle, chạm và phá hủy viên gạch thì lúc này quả bóng sẽ có độ xoáy khiến cho quả bỏng bật lại không đúng với góc tới ban đầu.
+            <br> Ngoài ra, khi chạm phá hủy viên gạch sẽ tăng tốc quả bỏng, càng lên tầng gạch cao thì quả bóng sẽ tăng tốc nhanh hơn.
         </p>
         <p>Trò chơi kết thúc khi người chơi hết mạng hoặc phá húy tất cả viên gạch. Điểm số cao nhất được lưu lại để so sánh.</p>
+    </div>
+    <button onclick="showInfor()" class="button-infor" role="button">Thông tin cá nhân</button>
+    <div class="infor">
+        <div class="infor-cancel" onclick="hideInfor()">
+            X
+        </div>
+        <div class="infor-content">
+            <div class="infor__school">Trường Đại học Nông Lâm TP.HCM</div>
+            <div class="infor__faculty">Khoa Công nghệ thông tin</div>
+            <div class="infor__name">Họ và tên: Dương Trí Nguyên</div>
+            <div class="infor__birth">Ngày sinh: 05/07/2003</div>
+            <div class="infor__hometown">Quê quán: Tây Ninh</div>
+            <div class="infor__relationship">Tình trạng hôn nhân: Độc thân</div>
+            <div class="infor__health">Sức khỏe: Tốt</div>
+            <div class="infor__class">Lớp: DH21DTC</div>
+            <div class="infor__fav">Sở thích: thể thao, công nghệ, game: Genshin Impact, Valorant, Apex Lengends,..., âm nhạc, anime, du lịch, chụp ảnh.</div>
+            <div class="infor__strength">Điểm mạnh: tích cực học hỏi những cái mới, chăm chỉ, có thể hoạt động nhóm tốt, biết những kỹ năng cơ bản về bộ công cụ offices, Adobe.</div>
+        </div>
     </div>
 </body>
 <script src="app.js"></script>
