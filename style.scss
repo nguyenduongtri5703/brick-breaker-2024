@@ -103,14 +103,14 @@ canvas {
 }
 
 .button-rules {
-    --height: 40px;
+    $height: 40px;
     position: fixed;
     top: 10%;
     right: 8%;
-    width: var(--height);
-    height: var(--height);
-    font-size: var(--height);
-    line-height: var(--height);
+    width: $height;
+    height: $height;
+    font-size: $height;
+    line-height: $height;
     border-radius: 50%;
     text-align: center;
     background-color: $background-color-5;
