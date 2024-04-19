@@ -56,8 +56,8 @@ const PupType = {
 const levelPups = {
     0: [],
     1: [PupType.EXTENSION],
-    2: [PupType.SUPER, PupType.LIFE],
-    3: [PupType.EXTENSION, PupType.STICKY],
+    2: [PupType.STICKY, PupType.LIFE],
+    3: [PupType.EXTENSION, PupType.SUPER],
     4: [PupType.EXTENSION, PupType.LIFE, PupType.SUPER],
     5: [PupType.EXTENSION, PupType.SUPER, PupType.LIFE, PupType.STICKY]
 }
